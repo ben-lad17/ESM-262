@@ -26,5 +26,5 @@ auto_power_generation = function(crolling=0.015, m, g = 9.8, V, A, p_air = 1.2, 
 
 
 
-
+# mistake
 
