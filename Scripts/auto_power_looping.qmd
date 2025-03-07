@@ -1,8 +1,14 @@
 ---
 title: "Auto Power Generation Looping"
 author: "Ben Ladabaum"
-format: html
+format: 
+  html:
+    embed-resources: true
+    code-fold: show
 editor: visual
+execute:
+  message: false
+  warning: false
 ---
 
 # Using Looping and PURRR to Calculate Mean and Maximum Power Generation
