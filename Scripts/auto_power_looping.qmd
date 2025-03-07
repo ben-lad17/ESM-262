@@ -1,0 +1,109 @@
+---
+title: "Auto Power Generation Looping"
+author: "Ben Ladabaum"
+format: html
+editor: visual
+---
+
+# Using Looping and PURRR to Calculate Mean and Maximum Power Generation
+
+```{r}
+# load packages
+library(here)
+library(purrr)
+library(tidyverse)
+library(patchwork)
+```
+
+```{r}
+# load functions
+source(here("R", "auto_power_generation.R"))
+```
+
+```{r}
+# generate a structure to store info on our possible cars
+possible_cars = data.frame(name = c("A","B","C","D"),mass=c(10000,65000,38000,5000), area =
+c(22,30,22,10))
+
+```
+
+```{r}
+# generate random speeds
+nsample = 200
+mean_speed = 80 * 0.277778 # convert from km/hr to m/s
+std_dev = 10 * 0.277778 # convert from km/hr to m/s
+
+speeds = rnorm(nsample, mean=mean_speed, sd=std_dev)
+```
+
+**Part 1:** compute the mean and maximum power for each car type using For Loop
+
+```{r}
+# generate matrix to store auto power
+auto_powers = data.frame(matrix(nrow=length(speeds), ncol=nrow(possible_cars)))
+colnames(auto_powers) = possible_cars$name
+
+# use for loop to fill in auto_powers dataframe
+for (i in 1:ncol(auto_powers)) {
+  auto_powers[,i] = auto_power_generation(V = speeds, A = possible_cars$area[i],
+                                          m = possible_cars$mass[i])
+}
+
+# generate dataframe to store mean and max power for each car type
+summary_df = data.frame(
+  car = possible_cars$name,
+  mean_power = colMeans(auto_powers),
+  max_power = apply(auto_powers, 2, max) #Apply the max function to each column 
+                                          #(2 means "apply function by columns").
+)
+
+summary_df
+```
+
+**Part 2:** compute the mean and maximum power for each car type using purrr
+
+```{r}
+# generate another set of random speeds
+speeds = rnorm(nsample, mean=mean_speed, sd=std_dev)
+
+auto_powers2 = pmap(list(A = possible_cars$area, m=possible_cars$mass),
+                    auto_power_generation, V=speeds)
+auto_powers2 = as.data.frame(do.call(cbind, auto_powers2)) # turn into dataframe
+colnames(auto_powers2) = possible_cars$name
+
+
+
+summary_df2 = data.frame(
+  car = possible_cars$name,
+  mean_power = map_dbl(auto_powers2, mean),  # Compute mean for each car
+  max_power = map_dbl(auto_powers2, max)    # Compute max for each car
+)
+
+summary_df2
+```
+
+**Part 3:** Create boxplots
+
+```{r}
+# reshape for ease of plotting
+auto_powers_long = pivot_longer(auto_powers, cols=c("A", "B", "C", "D"), 
+             names_to = "car", values_to = "power")
+auto_powers2_long = pivot_longer(auto_powers2, cols=c("A", "B", "C", "D"), 
+             names_to = "car", values_to = "power")
+
+
+# make boxplots
+ggplot(auto_powers_long, aes(car, power, fill=car)) +
+  geom_boxplot() + 
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
+  labs(x = "Car", y = "Power", title = "For Loop Method") +
+  theme_bw()
+
+ggplot(auto_powers2_long, aes(car, power, fill=car)) +
+  geom_boxplot() + 
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
+  labs(x = "Car", y = "Power", title = "Purrr Method") +
+  theme_bw()
+
+
+```
